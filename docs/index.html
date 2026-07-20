@@ -1,0 +1,257 @@
+<title>Model Standings — Chat, Coding & Aggregate</title>
+<style>
+  :root{
+    --paper:#eef1f0;
+    --panel:#ffffff;
+    --ink:#14181b;
+    --ink-soft:#4c5559;
+    --line:#d7dcda;
+    --line-strong:#b9c0bd;
+    --accent:#2647d6;
+    --accent-ink:#ffffff;
+    --gold:#a9720f;
+    --gold-bg:#fbeed2;
+    --good:#2f7d4f;
+    --bad-bg:#f4f1ee;
+    --bad-ink:#8a8175;
+    --radius:3px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, "Roboto Mono", monospace;
+    --sans: -apple-system, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#14181b; --panel:#1b2024; --ink:#eceeed; --ink-soft:#a2abaf;
+      --line:#2c3337; --line-strong:#3c454a; --accent:#7f9bff; --accent-ink:#0d1220;
+      --gold:#e8b656; --gold-bg:#3a2e14; --good:#5fbf88; --bad-bg:#232a2d; --bad-ink:#6d7679;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#14181b; --panel:#1b2024; --ink:#eceeed; --ink-soft:#a2abaf;
+    --line:#2c3337; --line-strong:#3c454a; --accent:#7f9bff; --accent-ink:#0d1220;
+    --gold:#e8b656; --gold-bg:#3a2e14; --good:#5fbf88; --bad-bg:#232a2d; --bad-ink:#6d7679;
+  }
+  :root[data-theme="light"]{
+    --paper:#eef1f0; --panel:#ffffff; --ink:#14181b; --ink-soft:#4c5559;
+    --line:#d7dcda; --line-strong:#b9c0bd; --accent:#2647d6; --accent-ink:#ffffff;
+    --gold:#a9720f; --gold-bg:#fbeed2; --good:#2f7d4f; --bad-bg:#f4f1ee; --bad-ink:#8a8175;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;padding:2.5rem 1.25rem 4rem;}
+  .wrap{max-width:76rem;margin:0 auto;}
+  header{display:flex;flex-direction:column;gap:.6rem;padding-bottom:1.6rem;margin-bottom:1.6rem;border-bottom:1px solid var(--line-strong);}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:.5rem;}
+  .eyebrow::before{content:"";width:.5rem;height:.5rem;background:var(--accent);display:inline-block;border-radius:1px;}
+  h1{margin:0;font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700;letter-spacing:-.015em;text-wrap:balance;}
+  .sub{max-width:44rem;color:var(--ink-soft);font-size:.95rem;line-height:1.55;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:1.4rem;margin-top:.4rem;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);}
+  .meta-row b{color:var(--ink);font-weight:600;}
+  .tabs{display:flex;gap:.35rem;margin-bottom:1.1rem;border-bottom:1px solid var(--line);}
+  .tab{appearance:none;background:transparent;border:none;border-bottom:2px solid transparent;padding:.65rem .2rem;margin-right:1.3rem;font-family:var(--sans);font-size:.92rem;font-weight:600;color:var(--ink-soft);cursor:pointer;display:flex;align-items:baseline;gap:.4rem;}
+  .tab .n{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);background:var(--bad-bg);padding:.1rem .38rem;border-radius:var(--radius);}
+  .tab:hover{color:var(--ink);}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);}
+  .tab[aria-selected="true"] .n{background:var(--accent);color:var(--accent-ink);}
+  .panel-note{font-size:.82rem;color:var(--ink-soft);margin-bottom:1rem;line-height:1.5;max-width:52rem;}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);}
+  table{width:100%;border-collapse:collapse;min-width:56rem;font-size:.86rem;}
+  thead th{position:sticky;top:0;background:var(--panel);text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:.7rem .8rem;border-bottom:1px solid var(--line-strong);white-space:nowrap;}
+  thead th.grp{text-align:center;border-left:1px solid var(--line);}
+  tbody td{padding:.62rem .8rem;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:color-mix(in srgb, var(--accent) 5%, transparent);}
+  .rank{font-family:var(--mono);font-weight:700;font-size:.9rem;width:2.4rem;text-align:center;font-variant-numeric:tabular-nums;}
+  tr.gold .rank{color:var(--gold);}
+  tr.gold td:first-child{box-shadow:inset 3px 0 0 var(--gold);}
+  .model-cell{min-width:12rem;}
+  .model-name{font-weight:600;letter-spacing:-.005em;}
+  .model-org{font-size:.74rem;color:var(--ink-soft);margin-top:.1rem;}
+  .score{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.86rem;}
+  .score .pm{color:var(--ink-soft);font-size:.74rem;}
+  .rankpair{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .rankpair b{color:var(--ink);font-weight:600;}
+  td.grp{border-left:1px solid var(--line);text-align:center;}
+  .price{font-family:var(--mono);font-size:.78rem;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .price .arrow{color:var(--ink-soft);margin:0 .15rem;}
+  .price.na{color:var(--bad-ink);font-style:italic;font-size:.74rem;}
+  .price.unhosted{color:var(--bad-ink);font-size:.78rem;}
+  .price.unhosted::before{content:"— ";}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;padding:.08rem .35rem;border-radius:var(--radius);background:var(--gold-bg);color:var(--gold);margin-left:.4rem;vertical-align:middle;}
+  .legend{display:flex;flex-wrap:wrap;gap:1.4rem;margin-top:1rem;font-size:.76rem;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:.4rem;}
+  .legend i{font-style:normal;font-family:var(--mono);color:var(--bad-ink);}
+  footer{margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1.6rem;}
+  footer h2{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 .5rem;font-weight:600;}
+  footer p, footer li{font-size:.82rem;color:var(--ink-soft);line-height:1.55;margin:0 0 .3rem;}
+  footer ul{margin:0;padding-left:1.1rem;}
+  footer a{color:var(--accent);text-decoration:none;}
+  footer a:hover{text-decoration:underline;}
+  [hidden]{display:none !important;}
+  @media (prefers-reduced-motion:no-preference){ tbody tr td{transition:background-color .12s ease;} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Provider &amp; model comparison — standalone build</div>
+    <h1>Model Standings</h1>
+    <p class="sub">Chat and coding rankings pulled directly from Arena's leaderboards, combined into one aggregate score, alongside per-million-token pricing from Arena's own listing, Microsoft Foundry, and OpenRouter. Rebuilt by a dependency-free Python script — see the repo README for how this refreshes itself.</p>
+    <div class="meta-row">
+      <span>Snapshot: <b>20 Jul 2026</b></span>
+      <span>Chat votes: <b>Arena Text leaderboard</b></span>
+      <span>Coding votes: <b>Arena WebDev leaderboard</b></span>
+      <span>Rankings shift daily — this rebuilds on its own schedule (see README).</span>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Ranking view">
+    <button class="tab" role="tab" aria-selected="true" aria-controls="panel-agg" id="tab-agg">Aggregate <span class="n">Top 10</span></button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-chat" id="tab-chat">Chat <span class="n">Top 10</span></button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code" id="tab-code">Coding <span class="n">Top 10</span></button>
+  </div>
+
+  <section id="panel-agg" role="tabpanel" aria-labelledby="tab-agg">
+    <p class="panel-note">Only models that appear in <em>both</em> top-25 boards are eligible. Ranked by average of chat rank and coding rank (lower is better); ties broken by the stronger of the two individual placements.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Model</th><th>Chat rank</th><th>Code rank</th><th>Avg rank</th>
+          <th class="grp">Direct (in → out)</th><th class="grp">Microsoft Foundry</th><th class="grp">OpenRouter (in → out)</th>
+        </tr></thead>
+        <tbody id="tbody-agg"></tbody>
+      </table>
+    </div>
+    <div class="legend"><span><i>—</i> not hosted on that platform</span><span><i>n/a</i> no independently confirmed price — figure not asserted</span></div>
+  </section>
+
+  <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+    <p class="panel-note">Straight cut of the Arena Text (chat) leaderboard, ranks 1–10.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Model</th><th>Arena score</th>
+          <th class="grp">Direct (in → out)</th><th class="grp">Microsoft Foundry</th><th class="grp">OpenRouter (in → out)</th>
+        </tr></thead>
+        <tbody id="tbody-chat"></tbody>
+      </table>
+    </div>
+    <div class="legend"><span><i>—</i> not hosted on that platform</span><span><i>n/a</i> no independently confirmed price — figure not asserted</span></div>
+  </section>
+
+  <section id="panel-code" role="tabpanel" aria-labelledby="tab-code" hidden>
+    <p class="panel-note">Straight cut of the Arena WebDev (coding) leaderboard, ranks 1–10.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Model</th><th>Arena score</th>
+          <th class="grp">Direct (in → out)</th><th class="grp">Microsoft Foundry</th><th class="grp">OpenRouter (in → out)</th>
+        </tr></thead>
+        <tbody id="tbody-code"></tbody>
+      </table>
+    </div>
+    <div class="legend"><span><i>—</i> not hosted on that platform</span><span><i>n/a</i> no independently confirmed price — figure not asserted</span></div>
+  </section>
+
+  <footer>
+    <div>
+      <h2>Sources</h2>
+      <ul>
+        <li>Chat &amp; coding scores and list pricing: <a href="https://arena.ai/leaderboard" target="_blank" rel="noopener">arena.ai leaderboards</a> (parsed live, no API key)</li>
+        <li>Foundry pricing (GPT models): <a href="https://prices.azure.com/api/retail/prices" target="_blank" rel="noopener">Azure Retail Prices API</a> (public, no auth)</li>
+        <li>OpenRouter pricing: <a href="https://openrouter.ai/api/v1/models" target="_blank" rel="noopener">openrouter.ai model list API</a>, matched by normalized name (best-effort)</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Methodology notes</h2>
+      <p>"Direct" pricing is Arena's own listed rate for each model, not a separately scraped vendor pricing page — this script doesn't parse prose pricing pages, only structured/API sources.</p>
+      <p>Claude models on Microsoft Foundry bill through "Claude Consumption Units" — an invoicing format, not a separate price. Microsoft's own docs confirm it converts tokens using Anthropic's own published rate with no markup by default, so Foundry is shown equal to Direct for Anthropic models here.</p>
+    </div>
+    <div>
+      <h2>Known limitations</h2>
+      <p>OpenRouter matching is name-based best-effort — a model can show "n/a" there even if OpenRouter does list it, if the naming doesn't line up. This is a deliberate fail-safe (never guess) rather than a bug to chase.</p>
+      <p>If Arena changes its page markup, the parser may return too few rows and the scheduled run will exit without publishing a broken page — check the workflow run logs if the site stops updating.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var NA = '<span class="price na">n/a</span>';
+  var UNHOSTED = '<span class="price unhosted">not hosted</span>';
+
+  function priceCell(inC, outC){
+    if(inC === null || inC === undefined) return NA;
+    return '<span class="price">$' + Number(inC).toFixed(2) + '<span class="arrow">→</span>$' + Number(outC).toFixed(2) + '</span>';
+  }
+
+  var PRICE = {"claudefable5": {"direct": [10.0, 50.0], "foundry": [10.0, 50.0], "or": [10.0, 50.0]}, "claudeopus46thinking": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "claudeopus47thinking": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "claudeopus46": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "claudeopus47": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "musespark11": {"direct": [1.25, 4.25], "foundry": "unhosted", "or": [1.25, 4.25]}, "musespark": {"direct": null, "foundry": "unhosted", "or": null}, "gemini3pro": {"direct": [2.0, 12.0], "foundry": "unhosted", "or": null}, "kimik3": {"direct": [3.0, 15.0], "foundry": "unhosted", "or": [3.0, 15.0]}, "gpt56solxhigh": {"direct": null, "foundry": [5.0, 30.0], "or": [5.0, 30.0]}, "gpt56solxhighcodexharness": {"direct": [5.0, 30.0], "foundry": "hosted", "or": null}, "glm52max": {"direct": [1.4, 4.4], "foundry": "unhosted", "or": null}, "claudeopus48thinking": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "grok45": {"direct": [2.0, 6.0], "foundry": "unhosted", "or": [2.0, 6.0]}, "claudesonnet5high": {"direct": [2.0, 10.0], "foundry": [2.0, 10.0], "or": [2.0, 10.0]}, "claudeopus48": {"direct": [5.0, 25.0], "foundry": [5.0, 25.0], "or": [5.0, 25.0]}, "gemini35flashmedium": {"direct": [1.5, 9.0], "foundry": "unhosted", "or": [1.5, 9.0]}};
+
+  function priceRow(key){
+    var p = PRICE[key];
+    if(!p) return '<td class="grp">'+NA+'</td><td class="grp">'+UNHOSTED+'</td><td class="grp">'+NA+'</td>';
+    var direct = p.direct ? priceCell(p.direct[0], p.direct[1]) : NA;
+    var foundry;
+    if(Array.isArray(p.foundry)) foundry = priceCell(p.foundry[0], p.foundry[1]);
+    else if(p.foundry === "hosted") foundry = '<span class="price">consumption-based<br>(not itemized publicly)</span>';
+    else foundry = UNHOSTED;
+    var or_ = p.or ? priceCell(p.or[0], p.or[1]) : NA;
+    return '<td class="grp">'+direct+'</td><td class="grp">'+foundry+'</td><td class="grp">'+or_+'</td>';
+  }
+
+  function orgLine(name, org){
+    return '<div class="model-name">'+name+'</div><div class="model-org">'+org+'</div>';
+  }
+
+  var AGG = [{"name": "claude-fable-5", "org": "Anthropic", "key": "claudefable5", "gold": true, "chat": 1, "code": 2, "avg": "1.5"}, {"name": "kimi-k3", "org": "Moonshot", "key": "kimik3", "gold": false, "chat": 9, "code": 1, "avg": "5.0"}, {"name": "claude-opus-4-7-thinking", "org": "Anthropic", "key": "claudeopus47thinking", "gold": false, "chat": 3, "code": 7, "avg": "5.0"}, {"name": "claude-opus-4-6-thinking", "org": "Anthropic", "key": "claudeopus46thinking", "gold": false, "chat": 2, "code": 9, "avg": "5.5"}, {"name": "claude-opus-4-7", "org": "Anthropic", "key": "claudeopus47", "gold": false, "chat": 5, "code": 8, "avg": "6.5"}, {"name": "claude-opus-4-6", "org": "Anthropic", "key": "claudeopus46", "gold": false, "chat": 4, "code": 12, "avg": "8.0"}, {"name": "claude-opus-4-8-thinking", "org": "Anthropic", "key": "claudeopus48thinking", "gold": false, "chat": 12, "code": 5, "avg": "8.5"}, {"name": "muse-spark-1.1", "org": "Meta", "key": "musespark11", "gold": false, "chat": 6, "code": 11, "avg": "8.5"}, {"name": "claude-opus-4-8", "org": "Anthropic", "key": "claudeopus48", "gold": false, "chat": 17, "code": 13, "avg": "15.0"}, {"name": "gemini-3.5-flash-medium", "org": "Google", "key": "gemini35flashmedium", "gold": false, "chat": 21, "code": 22, "avg": "21.5"}];
+  var tAgg = document.getElementById('tbody-agg');
+  AGG.forEach(function(m, i){
+    var tr = document.createElement('tr');
+    if(m.gold) tr.className = 'gold';
+    tr.innerHTML =
+      '<td class="rank">'+(i+1)+'</td>'+
+      '<td class="model-cell">'+orgLine(m.name, m.org)+(m.gold?'<span class="tag">Leader</span>':'')+'</td>'+
+      '<td class="rankpair"><b>#'+m.chat+'</b> chat</td>'+
+      '<td class="rankpair"><b>#'+m.code+'</b> code</td>'+
+      '<td class="rankpair"><b>'+m.avg+'</b></td>'+
+      priceRow(m.key);
+    tAgg.appendChild(tr);
+  });
+
+  var CHAT = [{"name": "claude-fable-5", "org": "Anthropic", "key": "claudefable5", "gold": true, "score": "1507", "pm": "7"}, {"name": "claude-opus-4-6-thinking", "org": "Anthropic", "key": "claudeopus46thinking", "gold": false, "score": "1504", "pm": "4"}, {"name": "claude-opus-4-7-thinking", "org": "Anthropic", "key": "claudeopus47thinking", "gold": false, "score": "1503", "pm": "4"}, {"name": "claude-opus-4-6", "org": "Anthropic", "key": "claudeopus46", "gold": false, "score": "1498", "pm": "4"}, {"name": "claude-opus-4-7", "org": "Anthropic", "key": "claudeopus47", "gold": false, "score": "1494", "pm": "4"}, {"name": "muse-spark-1.1", "org": "Meta", "key": "musespark11", "gold": false, "score": "1493", "pm": "8"}, {"name": "muse-spark", "org": "Meta", "key": "musespark", "gold": false, "score": "1487", "pm": "6"}, {"name": "gemini-3-pro", "org": "Google", "key": "gemini3pro", "gold": false, "score": "1486", "pm": "4"}, {"name": "kimi-k3", "org": "Moonshot", "key": "kimik3", "gold": false, "score": "1486", "pm": "11"}, {"name": "gpt-5.6-sol-xhigh", "org": "OpenAI", "key": "gpt56solxhigh", "gold": false, "score": "1486", "pm": "9"}];
+  var tChat = document.getElementById('tbody-chat');
+  CHAT.forEach(function(m, i){
+    var tr = document.createElement('tr');
+    if(m.gold) tr.className = 'gold';
+    tr.innerHTML =
+      '<td class="rank">'+(i+1)+'</td>'+
+      '<td class="model-cell">'+orgLine(m.name, m.org)+(m.gold?'<span class="tag">Leader</span>':'')+'</td>'+
+      '<td class="score">'+m.score+' <span class="pm">±'+m.pm+'</span></td>'+
+      priceRow(m.key);
+    tChat.appendChild(tr);
+  });
+
+  var CODE = [{"name": "kimi-k3", "org": "Moonshot", "key": "kimik3", "gold": true, "score": "1679", "pm": "17"}, {"name": "claude-fable-5", "org": "Anthropic", "key": "claudefable5", "gold": false, "score": "1631", "pm": "13"}, {"name": "gpt-5.6-sol-xhigh (codex-harness)", "org": "OpenAI", "key": "gpt56solxhighcodexharness", "gold": false, "score": "1618", "pm": "13"}, {"name": "glm-5.2 (max)", "org": "Z.ai", "key": "glm52max", "gold": false, "score": "1587", "pm": "10"}, {"name": "claude-opus-4-8-thinking", "org": "Anthropic", "key": "claudeopus48thinking", "gold": false, "score": "1562", "pm": "9"}, {"name": "grok-4.5", "org": "SpaceXAI", "key": "grok45", "gold": false, "score": "1558", "pm": "13"}, {"name": "claude-opus-4-7-thinking", "org": "Anthropic", "key": "claudeopus47thinking", "gold": false, "score": "1558", "pm": "7"}, {"name": "claude-opus-4-7", "org": "Anthropic", "key": "claudeopus47", "gold": false, "score": "1555", "pm": "7"}, {"name": "claude-opus-4-6-thinking", "org": "Anthropic", "key": "claudeopus46thinking", "gold": false, "score": "1542", "pm": "6"}, {"name": "claude-sonnet-5-high", "org": "Anthropic", "key": "claudesonnet5high", "gold": false, "score": "1542", "pm": "12"}];
+  var tCode = document.getElementById('tbody-code');
+  CODE.forEach(function(m, i){
+    var tr = document.createElement('tr');
+    if(m.gold) tr.className = 'gold';
+    tr.innerHTML =
+      '<td class="rank">'+(i+1)+'</td>'+
+      '<td class="model-cell">'+orgLine(m.name, m.org)+(m.gold?'<span class="tag">Leader</span>':'')+'</td>'+
+      '<td class="score">'+m.score+'</td>'+
+      priceRow(m.key);
+    tCode.appendChild(tr);
+  });
+
+  var tabs = document.querySelectorAll('.tab');
+  var panels = { 'tab-agg':'panel-agg', 'tab-chat':'panel-chat', 'tab-code':'panel-code' };
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.setAttribute('aria-selected','false'); });
+      Object.values(panels).forEach(function(id){ document.getElementById(id).hidden = true; });
+      tab.setAttribute('aria-selected','true');
+      document.getElementById(panels[tab.id]).hidden = false;
+    });
+  });
+})();
+</script>
