@@ -85,7 +85,18 @@ def parse_leaderboard(html: str, limit: int = TOP_N) -> list[dict]:
     return rows
 
 
+def strip_harness_suffix(model_id: str) -> str:
+    """Arena sometimes tags a leaderboard-specific entry with the harness it
+    was benchmarked through, e.g. "gpt-5.6-sol-xhigh (codex-harness)". That
+    annotation describes the *evaluation setup*, not a different priced
+    product — strip it before using the id for any pricing lookup, so the
+    same underlying model resolves to the same price on every tab it
+    appears on. Display names keep the annotation untouched."""
+    return re.sub(r"\s*\([^)]*\)\s*$", "", model_id).strip()
+
+
 def normalize(s: str) -> str:
+    s = strip_harness_suffix(s)
     s = s.lower()
     s = re.sub(r"[-_. ]", "", s)
     s = re.sub(r"(thinking|xhigh|high|medium|low|preview|max|opt)$", "", s)
@@ -120,7 +131,7 @@ def azure_gpt_price(model_id: str) -> tuple[float, float] | None:
     """Best-effort lookup on Azure's public retail pricing API for OpenAI/GPT
     models hosted on Microsoft Foundry. Returns None (never a guess) if no
     clean Global-Standard input/output pair is found."""
-    term = re.sub(r"^gpt-?", "", model_id)
+    term = re.sub(r"^gpt-?", "", strip_harness_suffix(model_id))
     term = re.sub(r"-(xhigh|high|medium|low)$", "", term)
     term = term.replace("-", " ")  # Azure skuNames are space-separated ("5.6 sol"), not hyphenated
     if not term:
@@ -229,14 +240,34 @@ def main():
     price_map = {}
 
     def key_for(model_id: str) -> str:
-        return re.sub(r"[^a-z0-9]", "", model_id.lower())
+        # Key by the harness-stripped id so e.g. "gpt-5.6-sol-xhigh" and
+        # "gpt-5.6-sol-xhigh (codex-harness)" — the same model benchmarked
+        # on two different boards — share one price entry instead of two
+        # independently-computed (and potentially inconsistent) ones.
+        return re.sub(r"[^a-z0-9]", "", strip_harness_suffix(model_id).lower())
+
+    def is_gap(v):
+        # None (direct/or) or "hosted" (foundry: known-hosted, no digit found yet)
+        # both mean "worth filling if a sibling row found something better."
+        return v is None or v == "hosted"
+
+    def merge_price(existing: dict, new: dict) -> dict:
+        """Fill gaps only — never overwrite a real value with a worse one."""
+        merged = dict(existing)
+        for field in ("direct", "foundry", "or"):
+            if is_gap(merged.get(field)) and not is_gap(new.get(field)):
+                merged[field] = new[field]
+        return merged
+
+    def upsert_price(k: str, row_like: dict):
+        entry = price_cell_data(row_like, or_index)
+        price_map[k] = merge_price(price_map[k], entry) if k in price_map else entry
 
     def tag_rows(rows: list[dict]) -> list[dict]:
         out = []
         for r in rows:
             k = key_for(r["model"])
-            if k not in price_map:
-                price_map[k] = price_cell_data(r, or_index)
+            upsert_price(k, r)
             out.append({**r, "key": k})
         return out
 
@@ -245,11 +276,7 @@ def main():
     agg_top = []
     for a in aggregate:
         k = key_for(a["model"])
-        if k not in price_map:
-            price_map[k] = price_cell_data(
-                {"org": a["org"], "model": a["model"], "price_in": a["price_in"], "price_out": a["price_out"]},
-                or_index,
-            )
+        upsert_price(k, {"org": a["org"], "model": a["model"], "price_in": a["price_in"], "price_out": a["price_out"]})
         agg_top.append({**a, "key": k})
 
     snapshot = datetime.now(timezone.utc).strftime("%d %b %Y")
